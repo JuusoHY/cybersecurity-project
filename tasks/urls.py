@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     add_task_view,
+    change_password_view,
     delete_task_view,
     home_view,
     signup_view,
@@ -16,5 +17,10 @@ urlpatterns = [
         'tasks/<int:task_id>/delete/',
         delete_task_view,
         name='delete_task'
+    ),
+    path(
+        'password/change/',
+        change_password_view,
+        name='change_password'
     ),
 ]
