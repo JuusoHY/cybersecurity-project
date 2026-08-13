@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8"/>
+        <title>Task Vault</title>
+    </head>
+
+    <body>
+        <h1>Task Vault</h1>
+
+        <p>Logged in as {{ user.username }}</p>
+
+        <form action="{% url 'account_logout' %}" method="POST">
+            {% csrf_token %}
+            <input type="submit" value="Logout"/>
+        </form>
+
+        <h2>Your tasks</h2>
+
+        <ul>
+            {% for task in tasks %}
+                <li>
+                    <strong>{{ task.title }}</strong>
+
+                    {% if task.description %}
+                        <p>{{ task.description }}</p>
+                    {% endif %}
+
+                    <form
+                        action="{% url 'delete_task' task.id %}"
+                        method="POST"
+                    >
+                        {% csrf_token %}
+                        <input type="submit" value="Delete"/>
+                    </form>
+                </li>
+            {% empty %}
+                <li>No tasks yet.</li>
+            {% endfor %}
+        </ul>
+
+        <h2>Add a task</h2>
+
+        <form action="{% url 'add_task' %}" method="POST">
+            {% csrf_token %}
+
+            <p>
+                <label for="title">Title:</label><br/>
+                <input type="text" name="title" id="title" required/>
+            </p>
+
+            <p>
+                <label for="description">Description:</label><br/>
+                <textarea
+                    name="description"
+                    id="description"
+                ></textarea>
+            </p>
+
+            <input type="submit" value="Add task"/>
+        </form>
+    </body>
+</html>

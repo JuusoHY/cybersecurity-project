@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8"/>
+        <title>Login</title>
+    </head>
+
+    <body>
+        <h1>Login</h1>
+
+        {% if form.errors %}
+            <p>Invalid username or password.</p>
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <input type="submit" value="Login"/>
+        </form>
+
+        <p>
+            No account?
+            <a href="{% url 'signup' %}">Create one</a>
+        </p>
+    </body>
+</html>
