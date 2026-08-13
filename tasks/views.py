@@ -27,11 +27,37 @@ def signup_view(request):
 
 @login_required
 def home_view(request):
-    tasks = Task.objects.filter(
-        owner=request.user
-    ).order_by('-created_at')
+    query = request.GET.get('q', '')
 
-    return render(request, 'tasks/index.html', {'tasks': tasks})
+    if query:
+        # FLAW 1: A1:2017 Injection
+        # User input is inserted directly into an SQL query.
+        sql = (
+            "SELECT * FROM tasks_task "
+            "WHERE owner_id = %s AND title LIKE '%%%s%%'"
+            % (request.user.id, query)
+        )
+        tasks = Task.objects.raw(sql)
+
+        # FIX:
+        # Use Django ORM so that user input is safely parameterized.
+        # tasks = Task.objects.filter(
+        #     owner=request.user,
+        #     title__icontains=query
+        # ).order_by('-created_at')
+    else:
+        tasks = Task.objects.filter(
+            owner=request.user
+        ).order_by('-created_at')
+
+    return render(
+        request,
+        'tasks/index.html',
+        {
+            'tasks': tasks,
+            'query': query,
+        }
+    )
 
 
 @login_required

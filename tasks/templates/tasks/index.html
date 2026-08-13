@@ -15,6 +15,22 @@
             <input type="submit" value="Logout"/>
         </form>
 
+        <h2>Search tasks</h2>
+
+        <form action="{% url 'home' %}" method="GET">
+            <input
+                type="text"
+                name="q"
+                value="{{ query }}"
+                placeholder="Search by title"
+            />
+            <input type="submit" value="Search"/>
+        </form>
+
+        <p>
+            <a href="{% url 'home' %}">Show all your tasks</a>
+        </p>
+
         <h2>Your tasks</h2>
 
         <ul>
