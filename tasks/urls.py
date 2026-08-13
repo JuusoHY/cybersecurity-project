@@ -6,6 +6,7 @@ from .views import (
     delete_task_view,
     home_view,
     signup_view,
+    task_detail_view,   # <-- lisää tämä
 )
 
 
@@ -22,5 +23,10 @@ urlpatterns = [
         'password/change/',
         change_password_view,
         name='change_password'
+    ),
+    path(
+        'tasks/<int:task_id>/',
+        task_detail_view,
+        name='task_detail'
     ),
 ]

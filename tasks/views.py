@@ -133,3 +133,15 @@ def change_password_view(request):
         return redirect('home')
 
     return render(request, 'tasks/change_password.html')
+
+
+@login_required
+def task_detail_view(request, task_id):
+    # FLAW 3: A5:2017 Broken Access Control
+    # The task is fetched by ID only, without checking ownership.
+    task = get_object_or_404(Task, pk=task_id)
+
+    # FIX:
+    # task = get_object_or_404(Task, pk=task_id, owner=request.user)
+
+    return render(request, 'tasks/task_detail.html', {'task': task})

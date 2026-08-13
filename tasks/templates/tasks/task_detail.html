@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8"/>
+        <title>Task detail</title>
+    </head>
+
+    <body>
+        <h1>Task detail</h1>
+
+        <p>Logged in as {{ user.username }}</p>
+
+        <h2>{{ task.title }}</h2>
+
+        {% if task.description %}
+            <p>{{ task.description }}</p>
+        {% else %}
+            <p>No description.</p>
+        {% endif %}
+
+        <p>
+            <a href="{% url 'home' %}">Back to tasks</a>
+        </p>
+    </body>
+</html>

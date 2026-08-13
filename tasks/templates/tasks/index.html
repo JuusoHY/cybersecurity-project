@@ -40,7 +40,9 @@
         <ul>
             {% for task in tasks %}
                 <li>
-                    <strong>{{ task.title }}</strong>
+                    <strong>
+                        <a href="{% url 'task_detail' task.id %}">{{ task.title }}</a>
+                    </strong>
 
                     {% if task.description %}
                         <p>{{ task.description }}</p>
