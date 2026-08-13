@@ -41,13 +41,6 @@ def home_view(request):
             % (request.user.id, query)
         )
         tasks = Task.objects.raw(sql)
-
-        # FIX:
-        # Use Django ORM so that user input is safely parameterized.
-        # tasks = Task.objects.filter(
-        #     owner=request.user,
-        #     title__icontains=query
-        # ).order_by('-created_at')
     else:
         tasks = Task.objects.filter(
             owner=request.user
@@ -61,6 +54,34 @@ def home_view(request):
             'query': query,
         }
     )
+
+
+# FIX: Replace the vulnerable home_view function above with the
+# following fixed version, which uses the Django ORM to parameterize
+# user input safely.
+#
+# @login_required
+# def home_view(request):
+#     query = request.GET.get('q', '')
+#
+#     if query:
+#         tasks = Task.objects.filter(
+#             owner=request.user,
+#             title__icontains=query
+#         ).order_by('-created_at')
+#     else:
+#         tasks = Task.objects.filter(
+#             owner=request.user
+#         ).order_by('-created_at')
+#
+#     return render(
+#         request,
+#         'tasks/index.html',
+#         {
+#             'tasks': tasks,
+#             'query': query,
+#         }
+#     )
 
 
 @login_required
@@ -90,6 +111,26 @@ def delete_task_view(request, task_id):
 
 
 @login_required
+def task_detail_view(request, task_id):
+    # FLAW 3: A5:2017 Broken Access Control
+    # The task is fetched by ID only, without checking ownership.
+    task = get_object_or_404(Task, pk=task_id)
+
+    return render(request, 'tasks/task_detail.html', {'task': task})
+
+
+# FIX: Replace the vulnerable task_detail_view function above with the
+# following fixed version, which restricts the lookup to tasks owned
+# by the current user.
+#
+# @login_required
+# def task_detail_view(request, task_id):
+#     task = get_object_or_404(Task, pk=task_id, owner=request.user)
+#
+#     return render(request, 'tasks/task_detail.html', {'task': task})
+
+
+@login_required
 def change_password_view(request):
     if request.method == 'POST':
         target_username = request.POST.get('username', '')
@@ -97,10 +138,17 @@ def change_password_view(request):
         new_password = request.POST.get('new_password', '')
 
         # FLAW 2: A2:2017 Broken Authentication
-        # The current password is not verified, and any logged-in user
+        # The current password is never verified, and any logged-in user
         # can change any other user's password by supplying their username.
-        # The new password is not validated for strength requirements.
         target_user = User.objects.get(username=target_username)
+
+        try:
+            validate_password(new_password, user=target_user)
+        except ValidationError as e:
+            return render(request, 'tasks/change_password.html', {
+                'error': ' '.join(e.messages)
+            })
+
         target_user.set_password(new_password)
         target_user.save()
 
@@ -108,40 +156,44 @@ def change_password_view(request):
         if target_user == request.user:
             update_session_auth_hash(request, request.user)
 
-        # FIX:
-        # if target_username != request.user.username:
-        #     return render(request, 'tasks/change_password.html', {
-        #         'error': 'You can only change your own password.'
-        #     })
-        #
-        # if not request.user.check_password(current_password):
-        #     return render(request, 'tasks/change_password.html', {
-        #         'error': 'Current password is incorrect.'
-        #     })
-        #
-        # try:
-        #     validate_password(new_password, user=request.user)
-        # except ValidationError as e:
-        #     return render(request, 'tasks/change_password.html', {
-        #         'error': ' '.join(e.messages)
-        #     })
-        #
-        # request.user.set_password(new_password)
-        # request.user.save()
-        # update_session_auth_hash(request, request.user)
-
         return redirect('home')
 
     return render(request, 'tasks/change_password.html')
 
 
-@login_required
-def task_detail_view(request, task_id):
-    # FLAW 3: A5:2017 Broken Access Control
-    # The task is fetched by ID only, without checking ownership.
-    task = get_object_or_404(Task, pk=task_id)
-
-    # FIX:
-    # task = get_object_or_404(Task, pk=task_id, owner=request.user)
-
-    return render(request, 'tasks/task_detail.html', {'task': task})
+# FIX: Replace the vulnerable change_password_view function above with
+# the following fixed version, which verifies the current password,
+# prevents changing another user's password, and validates the new
+# password strength.
+#
+# @login_required
+# def change_password_view(request):
+#     if request.method == 'POST':
+#         target_username = request.POST.get('username', '')
+#         current_password = request.POST.get('current_password', '')
+#         new_password = request.POST.get('new_password', '')
+#
+#         if target_username != request.user.username:
+#             return render(request, 'tasks/change_password.html', {
+#                 'error': 'You can only change your own password.'
+#             })
+#
+#         if not request.user.check_password(current_password):
+#             return render(request, 'tasks/change_password.html', {
+#                 'error': 'Current password is incorrect.'
+#             })
+#
+#         try:
+#             validate_password(new_password, user=request.user)
+#         except ValidationError as e:
+#             return render(request, 'tasks/change_password.html', {
+#                 'error': ' '.join(e.messages)
+#             })
+#
+#         request.user.set_password(new_password)
+#         request.user.save()
+#         update_session_auth_hash(request, request.user)
+#
+#         return redirect('home')
+#
+#     return render(request, 'tasks/change_password.html')
