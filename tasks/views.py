@@ -100,7 +100,11 @@ def add_task_view(request):
 
 @login_required
 @require_POST
+@csrf_exempt
 def delete_task_view(request, task_id):
+    # FLAW 5: CSRF (Cross-Site Request Forgery)
+    # CSRF protection is disabled, allowing an attacker to trick a
+    # logged-in user into deleting tasks without their consent.
     task = get_object_or_404(
         Task,
         pk=task_id,
@@ -109,6 +113,23 @@ def delete_task_view(request, task_id):
     task.delete()
 
     return redirect('home')
+
+
+# FIX: Replace the vulnerable delete_task_view function above with the
+# following fixed version, which removes @csrf_exempt. CSRF protection
+# is enabled by default, and the form already includes {% csrf_token %}.
+#
+# @login_required
+# @require_POST
+# def delete_task_view(request, task_id):
+#     task = get_object_or_404(
+#         Task,
+#         pk=task_id,
+#         owner=request.user
+#     )
+#     task.delete()
+#
+#     return redirect('home')
 
 
 @login_required
