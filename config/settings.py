@@ -23,9 +23,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-9m4aaw1n&l0zu7l+^(pzryi^ja49=+2gfb$a42h!1e+yrb#t@*'
 
 # SECURITY WARNING: don't run with debug turned on in production!
+
+# FLAW 4: A6:2017 Security Misconfiguration
+# DEBUG is set to True, which shows detailed error pages and reveals
+# sensitive information to anyone who triggers an error.
 DEBUG = True
 
 ALLOWED_HOSTS = []
+
+# FIX: Replace the vulnerable settings above with the following fixed
+# version, which disables debug mode and explicitly lists allowed hosts.
+# DEBUG = False
+#
+# ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 # Application definition
