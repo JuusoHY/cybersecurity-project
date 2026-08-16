@@ -8,8 +8,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 # Part of FLAW 5: A3:2017 Sensitive Data Exposure
-# Also, notice that code and fixes for FLAW 5 are in in line 193
-# of this views.py and in line 15 of models.py
+# Also, notice that code and fixes for FLAW 5 are in in line 30 and 195
+# of this views.py and in line 15 of models.py too
 from .models import Task, UserSecret
 # FIX for flaw 5: When UserSecret is removed, change the import above to:
 # from .models import Task
@@ -27,8 +27,11 @@ def signup_view(request):
         if form.is_valid():
             user = form.save()
 
-            # FLAW 5: A3:2017 Sensitive Data Exposure
+            # Part of FLAW 5: A3:2017 Sensitive Data Exposure
             # The user's plaintext password is stored in the database.
+            # Also, notice that code and fixes for FLAW 5 are in in line 10 and 195
+            # of this views.py and in line 15 of models.py too
+            #
             UserSecret.objects.create(
                 user=user,
                 plaintext_password=form.cleaned_data['password1']
@@ -190,7 +193,7 @@ def change_password_view(request):
             })
 
         # =========================================================
-        # FLAW 5: A3:2017 Sensitive Data Exposure
+        # Part of FLAW 5: A3:2017 Sensitive Data Exposure
         # ---------------------------------------------------------
         # Vulnerability: The new password is stored in plain text in
         # the UserSecret model.
