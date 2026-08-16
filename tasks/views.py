@@ -6,10 +6,13 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
+
+# FLAW 5: A3:2017 Sensitive Data Exposure
+from .models import Task, UserSecret
+# FIX for flaw 5: When UserSecret is removed, change the import above to:
+# from .models import Task
 
 from .forms import TaskForm
-from .models import Task
 
 
 def signup_view(request):
@@ -21,6 +24,19 @@ def signup_view(request):
 
         if form.is_valid():
             user = form.save()
+
+            # FLAW 5: A3:2017 Sensitive Data Exposure
+            # The user's plaintext password is stored in the database.
+            UserSecret.objects.create(
+                user=user,
+                plaintext_password=form.cleaned_data['password1']
+            )
+
+            # FIX: Remove the plaintext password storage above.
+            # Django's User model already stores a hashed password
+            # securely. No replacement code is needed.
+
+
             login(request, user)
             return redirect('home')
     else:
@@ -100,11 +116,7 @@ def add_task_view(request):
 
 @login_required
 @require_POST
-@csrf_exempt
 def delete_task_view(request, task_id):
-    # FLAW 5: CSRF (Cross-Site Request Forgery)
-    # CSRF protection is disabled, allowing an attacker to trick a
-    # logged-in user into deleting tasks without their consent.
     task = get_object_or_404(
         Task,
         pk=task_id,
@@ -115,21 +127,6 @@ def delete_task_view(request, task_id):
     return redirect('home')
 
 
-# FIX: Replace the vulnerable delete_task_view function above with the
-# following fixed version, which removes @csrf_exempt. CSRF protection
-# is enabled by default, and the form already includes {% csrf_token %}.
-#
-# @login_required
-# @require_POST
-# def delete_task_view(request, task_id):
-#     task = get_object_or_404(
-#         Task,
-#         pk=task_id,
-#         owner=request.user
-#     )
-#     task.delete()
-#
-#     return redirect('home')
 
 
 @login_required
@@ -159,11 +156,35 @@ def change_password_view(request):
         current_password = request.POST.get('current_password', '')
         new_password = request.POST.get('new_password', '')
 
+        # =========================================================
         # FLAW 2: A2:2017 Broken Authentication
-        # The current password is never verified, and any logged-in user
-        # can change any other user's password by supplying their username.
+        # ---------------------------------------------------------
+        # Vulnerability: The current password is never verified, and any
+        # logged-in user can change another user's password by supplying
+        # their username.
+        # ---------------------------------------------------------
         target_user = User.objects.get(username=target_username)
 
+        # FIX for FLAW 2:
+        # Replace the target_user lookup above with the following checks
+        # before changing the password:
+        #
+        # if target_username != request.user.username:
+        #     return render(request, 'tasks/change_password.html', {
+        #         'error': 'You can only change your own password.'
+        #     })
+        #
+        # if not request.user.check_password(current_password):
+        #     return render(request, 'tasks/change_password.html', {
+        #         'error': 'Current password is incorrect.'
+        #     })
+
+        # =========================================================
+        # FLAW 5: A3:2017 Sensitive Data Exposure
+        # ---------------------------------------------------------
+        # Vulnerability: The new password is stored in plain text in
+        # the UserSecret model.
+        # ---------------------------------------------------------
         try:
             validate_password(new_password, user=target_user)
         except ValidationError as e:
@@ -171,51 +192,28 @@ def change_password_view(request):
                 'error': ' '.join(e.messages)
             })
 
+        secret, created = UserSecret.objects.get_or_create(user=target_user)
+        secret.plaintext_password = new_password
+        secret.save()
+
+        # FIX for FLAW 5:
+        # Remove the three lines above (get_or_create, assignment, save)
+        # because they store the password in plain text.
+        #
+        # secret, created = UserSecret.objects.get_or_create(user=target_user)
+        # secret.plaintext_password = new_password
+        # secret.save()
+
+        # =========================================================
+        # Actual password change using Django's built-in mechanism
+        # =========================================================
         target_user.set_password(new_password)
         target_user.save()
 
-        # If the target user is the current user, keep them logged in.
+        # If the user changed their own password, keep them logged in.
         if target_user == request.user:
             update_session_auth_hash(request, request.user)
 
         return redirect('home')
 
     return render(request, 'tasks/change_password.html')
-
-
-# FIX: Replace the vulnerable change_password_view function above with
-# the following fixed version, which verifies the current password,
-# prevents changing another user's password, and validates the new
-# password strength.
-#
-# @login_required
-# def change_password_view(request):
-#     if request.method == 'POST':
-#         target_username = request.POST.get('username', '')
-#         current_password = request.POST.get('current_password', '')
-#         new_password = request.POST.get('new_password', '')
-#
-#         if target_username != request.user.username:
-#             return render(request, 'tasks/change_password.html', {
-#                 'error': 'You can only change your own password.'
-#             })
-#
-#         if not request.user.check_password(current_password):
-#             return render(request, 'tasks/change_password.html', {
-#                 'error': 'Current password is incorrect.'
-#             })
-#
-#         try:
-#             validate_password(new_password, user=request.user)
-#         except ValidationError as e:
-#             return render(request, 'tasks/change_password.html', {
-#                 'error': ' '.join(e.messages)
-#             })
-#
-#         request.user.set_password(new_password)
-#         request.user.save()
-#         update_session_auth_hash(request, request.user)
-#
-#         return redirect('home')
-#
-#     return render(request, 'tasks/change_password.html')
