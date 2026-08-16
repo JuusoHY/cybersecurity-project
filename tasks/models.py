@@ -15,10 +15,12 @@ class Task(models.Model):
 # FLAW 5: A3:2017 Sensitive Data Exposure
 # This model stores the user's plaintext password in the database.
 # If the database is compromised, all passwords are immediately exposed.
+#
+# Also, notice that code and fixes for FLAW 5 are in in line 10 and 193
+# of views.py
 class UserSecret(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     plaintext_password = models.CharField(max_length=255)
-
 
 # FIX: Remove the UserSecret model above entirely. Django's User model
 # already stores a hashed password securely. No plaintext copy is needed.

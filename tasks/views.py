@@ -7,7 +7,9 @@ from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-# FLAW 5: A3:2017 Sensitive Data Exposure
+# Part of FLAW 5: A3:2017 Sensitive Data Exposure
+# Also, notice that code and fixes for FLAW 5 are in in line 193
+# of this views.py and in line 15 of models.py
 from .models import Task, UserSecret
 # FIX for flaw 5: When UserSecret is removed, change the import above to:
 # from .models import Task
@@ -179,18 +181,22 @@ def change_password_view(request):
         #         'error': 'Current password is incorrect.'
         #     })
 
-        # =========================================================
-        # FLAW 5: A3:2017 Sensitive Data Exposure
-        # ---------------------------------------------------------
-        # Vulnerability: The new password is stored in plain text in
-        # the UserSecret model.
-        # ---------------------------------------------------------
+
         try:
             validate_password(new_password, user=target_user)
         except ValidationError as e:
             return render(request, 'tasks/change_password.html', {
                 'error': ' '.join(e.messages)
             })
+
+        # =========================================================
+        # FLAW 5: A3:2017 Sensitive Data Exposure
+        # ---------------------------------------------------------
+        # Vulnerability: The new password is stored in plain text in
+        # the UserSecret model.
+        # Also, notice that code and fixes for FLAW 5 are in in line 10
+        # of this views.py and in line 15 of models.py
+        # ---------------------------------------------------------
 
         secret, created = UserSecret.objects.get_or_create(user=target_user)
         secret.plaintext_password = new_password
@@ -199,18 +205,13 @@ def change_password_view(request):
         # FIX for FLAW 5:
         # Remove the three lines above (get_or_create, assignment, save)
         # because they store the password in plain text.
-        #
-        # secret, created = UserSecret.objects.get_or_create(user=target_user)
-        # secret.plaintext_password = new_password
-        # secret.save()
 
-        # =========================================================
-        # Actual password change using Django's built-in mechanism
-        # =========================================================
+
+
         target_user.set_password(new_password)
         target_user.save()
 
-        # If the user changed their own password, keep them logged in.
+
         if target_user == request.user:
             update_session_auth_hash(request, request.user)
 
