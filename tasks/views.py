@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 # Part of FLAW 5: A3:2017 Sensitive Data Exposure
-# Also, notice that code and fixes for FLAW 5 are in in line 30 and 198
+# Also, notice that code and fixes for FLAW 5 are in in line 30 and 176
 # of this views.py and in line 15 of models.py too
 from .models import Task, UserSecret
 # FIX for flaw 5: When UserSecret is removed, change the import above to:
@@ -29,7 +29,7 @@ def signup_view(request):
 
             # Part of FLAW 5: A3:2017 Sensitive Data Exposure
             # The user's plaintext password is stored in the database.
-            # Also, notice that code and fixes for FLAW 5 are in in line 10 and 198
+            # Also, notice that code and fixes for FLAW 5 are in in line 10 and 176
             # of this views.py and in line 15 of models.py too
             #
             UserSecret.objects.create(
@@ -63,6 +63,16 @@ def home_view(request):
             % (request.user.id, query)
         )
         tasks = Task.objects.raw(sql)
+
+        # FIX for FLAW 1:
+        # Remove the two lines above (sql = ... and tasks = Task.objects.raw(sql))
+        # and replace them with the following ORM query, which parameterizes
+        # the input safely:
+        #
+        # tasks = Task.objects.filter(
+        #     owner=request.user,
+        #     title__icontains=query
+        # ).order_by('-created_at')
     else:
         tasks = Task.objects.filter(
             owner=request.user
@@ -76,34 +86,6 @@ def home_view(request):
             'query': query,
         }
     )
-
-
-# FIX: Replace the vulnerable home_view function above with the
-# following fixed version, which uses the Django ORM to parameterize
-# user input safely.
-#
-# @login_required
-# def home_view(request):
-#     query = request.GET.get('q', '')
-#
-#     if query:
-#         tasks = Task.objects.filter(
-#             owner=request.user,
-#             title__icontains=query
-#         ).order_by('-created_at')
-#     else:
-#         tasks = Task.objects.filter(
-#             owner=request.user
-#         ).order_by('-created_at')
-#
-#     return render(
-#         request,
-#         'tasks/index.html',
-#         {
-#             'tasks': tasks,
-#             'query': query,
-#         }
-#     )
 
 
 @login_required
@@ -140,18 +122,13 @@ def task_detail_view(request, task_id):
     # The task is fetched by ID only, without checking ownership.
     task = get_object_or_404(Task, pk=task_id)
 
+    # FIX for FLAW 3:
+    # Replace the line above with the following, which restricts the
+    # lookup to tasks owned by the current user:
+    #
+    # task = get_object_or_404(Task, pk=task_id, owner=request.user)
+
     return render(request, 'tasks/task_detail.html', {'task': task})
-
-
-# FIX: Replace the vulnerable task_detail_view function above with the
-# following fixed version, which restricts the lookup to tasks owned
-# by the current user.
-#
-# @login_required
-# def task_detail_view(request, task_id):
-#     task = get_object_or_404(Task, pk=task_id, owner=request.user)
-#
-#     return render(request, 'tasks/task_detail.html', {'task': task})
 
 
 @login_required
