@@ -171,8 +171,9 @@ def change_password_view(request):
         target_user = User.objects.get(username=target_username)
 
         # FIX for FLAW 2:
-        # Replace the target_user lookup above with the following checks
-        # before changing the password:
+        # Replace the vulnerable target_user lookup above with this block.
+        # The user may only change their own password, and the current
+        # password must be verified before the change is allowed.
         #
         # if target_username != request.user.username:
         #     return render(request, 'tasks/change_password.html', {
@@ -183,6 +184,8 @@ def change_password_view(request):
         #     return render(request, 'tasks/change_password.html', {
         #         'error': 'Current password is incorrect.'
         #     })
+        #
+        # target_user = request.user
 
 
         try:
