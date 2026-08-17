@@ -197,8 +197,8 @@ def change_password_view(request):
         # ---------------------------------------------------------
         # Vulnerability: The new password is stored in plain text in
         # the UserSecret model.
-        # Also, notice that code and fixes for FLAW 5 are in in line 10
-        # of this views.py and in line 15 of models.py
+        # Also, notice that code and fixes for FLAW 5 are in in line 10 and 30
+        # of this views.py and in line 15 of models.py too
         # ---------------------------------------------------------
 
         secret, created = UserSecret.objects.get_or_create(user=target_user)
