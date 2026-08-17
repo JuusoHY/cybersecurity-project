@@ -17,7 +17,7 @@ class Task(models.Model):
 # If the database is compromised, all passwords are immediately exposed.
 #
 # Also, notice that code and fixes for FLAW 5 are in in line 10 and 30
-# and 195 of views.py too
+# and 198 of views.py too
 class UserSecret(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     plaintext_password = models.CharField(max_length=255)
